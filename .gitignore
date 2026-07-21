@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+.DS_Store.next
+node_modules
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
