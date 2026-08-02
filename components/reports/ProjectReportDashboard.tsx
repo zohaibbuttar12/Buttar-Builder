@@ -1,16 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, ImageIcon, Printer, Search } from "lucide-react"
+import { ArrowLeft, Download, FileText, ImageIcon, Printer, Search } from "lucide-react"
 import { jsPDF } from "jspdf"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useData } from "@/lib/context/DataContext"
 import { formatCurrency, formatDate } from "@/lib/utils"
-
-type TabKey = "Overview" | "Labour" | "Material" | "Vendors" | "Expenses" | "Land" | "Sales" | "Documents" | "Photos"
 
 type Column<T> = {
   key: string
@@ -38,7 +36,6 @@ function ReportTable<T extends Record<string, any>>({
   filterOptions,
   filterValue,
   onFilterChange,
-  pageSize = 6,
 }: {
   title: string
   data: T[]
@@ -49,12 +46,10 @@ function ReportTable<T extends Record<string, any>>({
   filterOptions?: { label: string; value: string }[]
   filterValue?: string
   onFilterChange?: (value: string) => void
-  pageSize?: number
 }) {
   const [query, setQuery] = useState("")
   const [sortKey, setSortKey] = useState<string>(columns[0]?.key ?? "")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     let next = [...data]
@@ -91,13 +86,7 @@ function ReportTable<T extends Record<string, any>>({
     return next
   }, [data, filterKey, filterValue, query, searchFields, sortDirection, sortKey])
 
-  useEffect(() => {
-    setPage(1)
-  }, [query, filterValue, sortKey, sortDirection])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const visibleRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const visibleRows = filtered
 
   return (
     <Card className="p-4 md:p-6">
@@ -189,24 +178,6 @@ function ReportTable<T extends Record<string, any>>({
         </table>
       </div>
 
-      {filtered.length > pageSize && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
-            Showing {(safePage - 1) * pageSize + 1}-{Math.min(safePage * pageSize, filtered.length)} of {filtered.length}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs text-slate-500">
-              Page {safePage} / {totalPages}
-            </span>
-            <Button type="button" variant="outline" size="sm" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={safePage === totalPages}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
     </Card>
   )
 }
@@ -214,7 +185,6 @@ function ReportTable<T extends Record<string, any>>({
 export default function ProjectReportDashboard({ projectId }: { projectId: string }) {
   const router = useRouter()
   const { projects, labourPayments, materialPurchases, expenses, sales, landSales, projectLandAssignments, purchasedLands, loading, error } = useData()
-  const [activeTab, setActiveTab] = useState<TabKey>("Overview")
   const [vendorFilter, setVendorFilter] = useState("")
 
   const project = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects])
@@ -521,309 +491,90 @@ export default function ProjectReportDashboard({ projectId }: { projectId: strin
     )
   }
 
-  const tabs: TabKey[] = ["Overview", "Labour", "Material", "Vendors", "Expenses", "Land", "Sales", "Documents", "Photos"]
-
-  const renderOverview = () => (
+  const renderScrollableReport = () => (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget Summary</p>
-          <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(totalBudget)}</p>
-          <p className="mt-2 text-sm text-slate-500">Total planned budget</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total Spent</p>
-          <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(totalSpend)}</p>
-          <p className="mt-2 text-sm text-slate-500">Across labour, material and expenses</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Progress</p>
-          <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">{progress}%</p>
-          <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-700">
-            <div className="h-2 rounded-full bg-[#D4AF37]" style={{ width: `${progress}%` }} />
+      <Card className="p-5 md:p-6">
+        <h2 className="mb-5 text-2xl font-bold text-slate-900 dark:text-white">Project Information</h2>
+        <div className="grid gap-4 md:grid-cols-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Project Name</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.name}</p>
           </div>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Remaining Budget</p>
-          <p className={`mt-3 text-2xl font-bold ${remainingBudget >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-            {formatCurrency(remainingBudget)}
-          </p>
-          <p className="mt-2 text-sm text-slate-500">Projected funds left</p>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="p-5 md:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Project Overview</h3>
-            <span className="rounded-full bg-[#D4AF37]/10 px-3 py-1 text-xs font-medium text-[#8D6C12]">{project.status}</span>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Client Name</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.clientName || "—"}</p>
           </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Project Name</p>
-              <p className="mt-2 text-base font-semibold">{project.name}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Client</p>
-              <p className="mt-2 text-base font-semibold">{project.clientName || "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Location</p>
-              <p className="mt-2 text-base font-semibold">{project.location || "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Start Date</p>
-              <p className="mt-2 text-base font-semibold">{project.startDate ? formatDate(project.startDate) : "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Contract Amount</p>
-              <p className="mt-2 text-base font-semibold">{formatCurrency(project.contractAmount || 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Project ID</p>
-              <p className="mt-2 text-base font-semibold">{project.id}</p>
-            </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.status || "—"}</p>
           </div>
-        </Card>
-
-        <Card className="p-5 md:p-6">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Financial Summary</h3>
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-900">
-              <span className="text-slate-500">Labour</span>
-              <span className="font-semibold">{formatCurrency(totalLabour)}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-900">
-              <span className="text-slate-500">Material</span>
-              <span className="font-semibold">{formatCurrency(totalMaterial)}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-900">
-              <span className="text-slate-500">Expenses</span>
-              <span className="font-semibold">{formatCurrency(totalExpenses)}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-900">
-              <span className="text-slate-500">Land Cost</span>
-              <span className="font-semibold">{formatCurrency(totalLandCost)}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/5 p-3">
-              <span className="font-medium text-slate-900 dark:text-white">Profit Calculation</span>
-              <span className={`font-bold ${profit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {formatCurrency(profit)}
-              </span>
-            </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Location</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.location || "—"}</p>
           </div>
-        </Card>
-      </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Start Date</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.startDate ? formatDate(project.startDate) : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">End Date</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{project.endDate ? formatDate(project.endDate) : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Budget</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{formatCurrency(totalBudget)}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Land Cost</p>
+            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{formatCurrency(totalLandCost)}</p>
+          </div>
+        </div>
+      </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ReportTable
-          title="Labour Payments"
-          data={labourRows}
-          emptyText="No labour payment entries found for this project."
-          searchFields={["labourName", "workDescription", "date"]}
-          columns={[
-            { key: "labourName", label: "Labour" },
-            { key: "workDescription", label: "Description" },
-            { key: "amount", label: "Amount", render: (value) => formatCurrency(Number(value || 0)) },
-            { key: "date", label: "Date", render: (value) => formatDate(value) },
-          ]}
-          pageSize={5}
-        />
-
-        <ReportTable
-          title="Material Purchases"
-          data={materialRows}
-          emptyText="No material purchases recorded for this project."
-          searchFields={["materialType", "vendorName", "date"]}
-          columns={[
-            { key: "materialType", label: "Material" },
-            { key: "vendorName", label: "Vendor" },
-            { key: "quantity", label: "Qty" },
-            { key: "total", label: "Total", render: (value) => formatCurrency(Number(value || 0)) },
-          ]}
-          pageSize={5}
-        />
-      </div>
-    </div>
-  )
-
-  const renderLabour = () => (
-    <ReportTable
-      title="Labour Payments"
-      data={labourRows}
-      emptyText="No labour payment records found for this project."
-      searchFields={["labourName", "workDescription", "date"]}
-      columns={[
-        { key: "labourName", label: "Labour" },
-        { key: "workDescription", label: "Description" },
-        { key: "amount", label: "Amount", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "date", label: "Date", render: (value) => formatDate(value) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderMaterial = () => (
-    <ReportTable
-      title="Material Purchases"
-      data={materialRows}
-      emptyText="No material purchases recorded for this project."
-      searchFields={["materialType", "vendorName", "date"]}
-      columns={[
-        { key: "materialType", label: "Material Type" },
-        { key: "vendorName", label: "Vendor" },
-        { key: "quantity", label: "Qty" },
-        { key: "unit", label: "Unit" },
-        { key: "rate", label: "Rate", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "total", label: "Total", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "date", label: "Date", render: (value) => formatDate(value) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderVendors = () => (
-    <ReportTable
-      title="Vendor Payments"
-      data={vendorRows}
-      emptyText="No vendor payment records found for this project."
-      searchFields={["vendor", "materialCost", "expenseCost", "total"]}
-      filterKey="vendor"
-      filterOptions={vendorRows.map((row) => ({ label: row.vendor, value: row.vendor }))}
-      filterValue={vendorFilter}
-      onFilterChange={setVendorFilter}
-      columns={[
-        { key: "vendor", label: "Vendor" },
-        { key: "materialCost", label: "Material Cost", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "expenseCost", label: "Expense Cost", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "total", label: "Total", render: (value) => formatCurrency(Number(value || 0)) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderExpenses = () => (
-    <ReportTable
-      title="Expenses"
-      data={expenseRows}
-      emptyText="No expense entries found for this project."
-      searchFields={["category", "description", "vendorPerson", "date"]}
-      columns={[
-        { key: "category", label: "Category" },
-        { key: "description", label: "Description" },
-        { key: "vendorPerson", label: "Vendor / Paid To" },
-        { key: "amount", label: "Amount", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "date", label: "Date", render: (value) => formatDate(value) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderLand = () => (
-    <div className="space-y-6">
       <ReportTable
-        title="Purchased Land Details"
-        data={purchasedLandRows}
-        emptyText="No purchased land records are assigned to this project yet."
-        searchFields={["plotName", "plotNumber", "location", "owner"]}
+        title="Material Report"
+        data={materialRows}
+        emptyText="No material purchases recorded for this project."
+        searchFields={["materialType", "vendorName", "date"]}
         columns={[
-          { key: "plotName", label: "Plot Name" },
-          { key: "plotNumber", label: "Plot Number" },
-          { key: "location", label: "Location" },
-          { key: "totalArea", label: "Area" },
+          { key: "materialType", label: "Material" },
+          { key: "vendorName", label: "Supplier" },
+          { key: "date", label: "Date", render: (value) => formatDate(value) },
+          { key: "quantity", label: "Quantity" },
           { key: "unit", label: "Unit" },
-          { key: "purchasePrice", label: "Purchase Price", render: (value) => formatCurrency(Number(value || 0)) },
+          { key: "rate", label: "Rate", render: (value) => formatCurrency(Number(value || 0)) },
+          { key: "total", label: "Total Cost", render: (value) => formatCurrency(Number(value || 0)) },
         ]}
-        pageSize={8}
       />
 
       <ReportTable
-        title="Land Sales Details"
-        data={linkedLandSales}
-        emptyText="No land sales are linked to this project."
-        searchFields={["plotName", "customerName", "saleDate"]}
+        title="Labour Report"
+        data={labourRows}
+        emptyText="No labour payment records found for this project."
+        searchFields={["labourName", "workDescription", "date"]}
         columns={[
-          { key: "plotName", label: "Plot" },
-          { key: "customerName", label: "Customer" },
-          { key: "areaSold", label: "Area Sold" },
-          { key: "salePrice", label: "Sale Price", render: (value) => formatCurrency(Number(value || 0)) },
-          { key: "landPurchaseCost", label: "Land Cost", render: (value) => formatCurrency(Number(value || 0)) },
-          { key: "landProfit", label: "Profit", render: (value) => formatCurrency(Number(value || 0)) },
-          { key: "saleDate", label: "Date", render: (value) => formatDate(value) },
+          { key: "labourName", label: "Worker Name" },
+          { key: "workDescription", label: "Work Description" },
+          { key: "date", label: "Payment Date", render: (value) => formatDate(value) },
+          { key: "amount", label: "Amount", render: (value) => formatCurrency(Number(value || 0)) },
         ]}
-        pageSize={8}
+      />
+
+      <ReportTable
+        title="Expense Report"
+        data={expenseRows}
+        emptyText="No expense entries found for this project."
+        searchFields={["category", "description", "vendorPerson", "date"]}
+        columns={[
+          { key: "category", label: "Category" },
+          { key: "description", label: "Description" },
+          { key: "vendorPerson", label: "Vendor / Paid To" },
+          { key: "amount", label: "Amount", render: (value) => formatCurrency(Number(value || 0)) },
+          { key: "date", label: "Date", render: (value) => formatDate(value) },
+        ]}
       />
     </div>
   )
-
-  const renderSales = () => (
-    <ReportTable
-      title="Sales"
-      data={propertySalesRows}
-      emptyText="No property sales recorded for this project."
-      searchFields={["buyerName", "propertyLabel", "saleDate", "paymentMode"]}
-      columns={[
-        { key: "propertyLabel", label: "Property" },
-        { key: "buyerName", label: "Buyer" },
-        { key: "paymentMode", label: "Mode" },
-        { key: "salePrice", label: "Sale Price", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "profit", label: "Profit", render: (value) => formatCurrency(Number(value || 0)) },
-        { key: "saleDate", label: "Date", render: (value) => formatDate(value) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderDocuments = () => (
-    <ReportTable
-      title="Project Documents"
-      data={documentRows}
-      emptyText="No project documents have been uploaded yet."
-      searchFields={["name", "type"]}
-      columns={[
-        { key: "name", label: "Document" },
-        { key: "type", label: "Type" },
-        { key: "uploadedAt", label: "Uploaded", render: (value) => formatDate(String(value || "")) },
-      ]}
-      pageSize={8}
-    />
-  )
-
-  const renderPhotos = () => (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {photoRows.length === 0 ? (
-        <Card className="p-6 md:col-span-2 xl:col-span-3">
-          <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-slate-500">
-            <ImageIcon className="h-10 w-10" />
-            <p>No progress photos uploaded for this project yet.</p>
-          </div>
-        </Card>
-      ) : (
-        photoRows.map((photo, index) => (
-          <Card key={`${photo.title}-${index}`} className="overflow-hidden">
-            <div className="h-48 bg-[radial-gradient(circle,_rgba(212,175,55,0.18),_transparent_60%)]" />
-            <div className="p-4">
-              <p className="font-semibold text-slate-900 dark:text-white">{photo.title}</p>
-              <p className="mt-2 text-xs text-slate-500">{formatDate(String(photo.date || ""))}</p>
-            </div>
-          </Card>
-        ))
-      )}
-    </div>
-  )
-
-  const tabContent: Record<TabKey, JSX.Element> = {
-    Overview: renderOverview(),
-    Labour: renderLabour(),
-    Material: renderMaterial(),
-    Vendors: renderVendors(),
-    Expenses: renderExpenses(),
-    Land: renderLand(),
-    Sales: renderSales(),
-    Documents: renderDocuments(),
-    Photos: renderPhotos(),
-  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -855,26 +606,7 @@ export default function ProjectReportDashboard({ projectId }: { projectId: strin
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max gap-2 rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-950">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
-                activeTab === tab
-                  ? "bg-[#D4AF37] text-slate-950"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tabContent[activeTab]}
+      {renderScrollableReport()}
     </div>
   )
 }
