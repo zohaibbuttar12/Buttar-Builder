@@ -1,6 +1,18 @@
 -- BUTTAR BUILDERS - Complete Database Setup
 -- Run this in: Supabase Dashboard > SQL Editor > New Query
 
+CREATE TABLE IF NOT EXISTS admins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+INSERT INTO admins (email, password)
+VALUES ('admin@buttarbuilders.com', 'admin123')
+ON CONFLICT (email) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
@@ -90,6 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_mp_vendor ON material_purchases(vendor_id);
 CREATE INDEX IF NOT EXISTS idx_exp_project ON expenses(project_id);
 
 -- Row Level Security
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE labours ENABLE ROW LEVEL SECURITY;
 ALTER TABLE labour_payments ENABLE ROW LEVEL SECURITY;
@@ -99,6 +112,10 @@ ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (open access - tighten in production)
 DO $$ BEGIN
+  -- admins
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='admins' AND policyname='admins_all') THEN
+    CREATE POLICY admins_all ON admins FOR ALL USING (true) WITH CHECK (true);
+  END IF;
   -- projects
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='projects' AND policyname='projects_all') THEN
     CREATE POLICY projects_all ON projects FOR ALL USING (true) WITH CHECK (true);
@@ -129,6 +146,8 @@ END $$;
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_admins_upd ON admins;
+CREATE TRIGGER trg_admins_upd BEFORE UPDATE ON admins FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS trg_projects_upd ON projects;
 CREATE TRIGGER trg_projects_upd BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS trg_labours_upd ON labours;
