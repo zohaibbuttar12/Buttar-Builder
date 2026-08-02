@@ -1,13 +1,26 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Vendor } from "@/lib/types"
 
+const buildVendorForm = (initialValues?: Partial<Vendor>) => ({
+  shopName: initialValues?.shopName || "",
+  ownerName: initialValues?.ownerName || "",
+  materialType: initialValues?.materialType || "",
+  phone: initialValues?.phone || "",
+  address: initialValues?.address || "",
+})
+
 export function VendorForm({ onSubmit, initialValues }: { onSubmit: (d: any) => void; initialValues?: Partial<Vendor> }) {
-  const [f, setF] = useState({ shopName: initialValues?.shopName||"", ownerName: initialValues?.ownerName||"", materialType: initialValues?.materialType||"", phone: initialValues?.phone||"", address: initialValues?.address||"" })
+  const [f, setF] = useState(() => buildVendorForm(initialValues))
+
+  useEffect(() => {
+    setF(buildVendorForm(initialValues))
+  }, [initialValues])
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(f) }} className="space-y-4">
       <div className="space-y-1"><Label>Shop Name *</Label><Input value={f.shopName} onChange={e => setF({...f, shopName: e.target.value})} required /></div>

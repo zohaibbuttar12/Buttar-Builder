@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,19 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { PurchasedLand } from "@/lib/types"
 
+const buildPurchasedLandForm = (initialValues?: Partial<PurchasedLand>) => ({
+  plotName: initialValues?.plotName || "",
+  plotNumber: initialValues?.plotNumber || "",
+  location: initialValues?.location || "",
+  owner: initialValues?.owner || "",
+  totalArea: initialValues?.totalArea || 0,
+  unit: initialValues?.unit || "marla",
+  purchasePrice: initialValues?.purchasePrice || 0,
+  transferFee: initialValues?.transferFee || 0,
+  purchaseDate: initialValues?.purchaseDate || new Date().toISOString().split("T")[0],
+  notes: initialValues?.notes || "",
+})
+
 export function PurchasedLandForm({ onSubmit, initialValues }: { onSubmit: (d: any) => void; initialValues?: Partial<PurchasedLand> }) {
-  const [f, setF] = useState({
-    plotName: initialValues?.plotName || "",
-    plotNumber: initialValues?.plotNumber || "",
-    location: initialValues?.location || "",
-    owner: initialValues?.owner || "",
-    totalArea: initialValues?.totalArea || 0,
-    unit: initialValues?.unit || "marla",
-    purchasePrice: initialValues?.purchasePrice || 0,
-    transferFee: initialValues?.transferFee || 0,
-    purchaseDate: initialValues?.purchaseDate || new Date().toISOString().split("T")[0],
-    notes: initialValues?.notes || "",
-  })
+  const [f, setF] = useState(() => buildPurchasedLandForm(initialValues))
+
+  useEffect(() => {
+    setF(buildPurchasedLandForm(initialValues))
+  }, [initialValues])
 
   const totalCost = (f.purchasePrice || 0) + (f.transferFee || 0)
   const costPerUnit = f.totalArea > 0 ? totalCost / f.totalArea : 0

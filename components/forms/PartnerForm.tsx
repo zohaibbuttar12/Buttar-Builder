@@ -1,13 +1,27 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Partner } from "@/lib/types"
 
+const buildPartnerForm = (initialValues?: Partial<Partner>) => ({
+  name: initialValues?.name || "",
+  phone: initialValues?.phone || "",
+  email: initialValues?.email || "",
+  cnic: initialValues?.cnic || "",
+  address: initialValues?.address || "",
+  notes: initialValues?.notes || "",
+})
+
 export function PartnerForm({ onSubmit, initialValues }: { onSubmit: (d: any) => void; initialValues?: Partial<Partner> }) {
-  const [f, setF] = useState({ name: initialValues?.name||"", phone: initialValues?.phone||"", email: initialValues?.email||"", cnic: initialValues?.cnic||"", address: initialValues?.address||"", notes: initialValues?.notes||"" })
+  const [f, setF] = useState(() => buildPartnerForm(initialValues))
+
+  useEffect(() => {
+    setF(buildPartnerForm(initialValues))
+  }, [initialValues])
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(f) }} className="space-y-4">
       <div className="space-y-1"><Label>Partner Name *</Label><Input value={f.name} onChange={e => setF({...f, name: e.target.value})} required /></div>

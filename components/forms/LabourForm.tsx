@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,8 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Labour } from "@/lib/types"
 
+const buildLabourForm = (initialValues?: Partial<Labour>) => ({
+  name: initialValues?.name || "",
+  category: initialValues?.category || "laborer",
+  phone: initialValues?.phone || "",
+  address: initialValues?.address || "",
+})
+
 export function LabourForm({ onSubmit, initialValues }: { onSubmit: (d: any) => void; initialValues?: Partial<Labour> }) {
-  const [f, setF] = useState({ name: initialValues?.name||"", category: initialValues?.category||"laborer", phone: initialValues?.phone||"", address: initialValues?.address||"" })
+  const [f, setF] = useState(() => buildLabourForm(initialValues))
+
+  useEffect(() => {
+    setF(buildLabourForm(initialValues))
+  }, [initialValues])
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(f) }} className="space-y-4">
       <div className="space-y-1"><Label>Worker Name *</Label><Input value={f.name} onChange={e => setF({...f, name: e.target.value})} required /></div>

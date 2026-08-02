@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,8 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Project } from "@/lib/types"
 
+const buildProjectForm = (initialValues?: Partial<Project>) => ({
+  name: initialValues?.name || "",
+  description: initialValues?.description || "",
+  clientName: initialValues?.clientName || "",
+  clientContact: initialValues?.clientContact || "",
+  location: initialValues?.location || "",
+  startDate: initialValues?.startDate || "",
+  endDate: initialValues?.endDate || "",
+  estimatedBudget: initialValues?.estimatedBudget || 0,
+  plotSize: initialValues?.plotSize || "",
+  status: initialValues?.status || "planning",
+  contractAmount: initialValues?.contractAmount || 0,
+})
+
 export function ProjectForm({ onSubmit, initialValues }: { onSubmit: (d: any) => void; initialValues?: Partial<Project> }) {
-  const [f, setF] = useState({ name: initialValues?.name||"", description: initialValues?.description||"", clientName: initialValues?.clientName||"", clientContact: initialValues?.clientContact||"", location: initialValues?.location||"", startDate: initialValues?.startDate||"", endDate: initialValues?.endDate||"", estimatedBudget: initialValues?.estimatedBudget||0, plotSize: initialValues?.plotSize||"", status: initialValues?.status||"planning", contractAmount: initialValues?.contractAmount||0 })
+  const [f, setF] = useState(() => buildProjectForm(initialValues))
+
+  useEffect(() => {
+    setF(buildProjectForm(initialValues))
+  }, [initialValues])
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit({ ...f, estimatedBudget: Number(f.estimatedBudget), contractAmount: Number(f.contractAmount) }) }} className="space-y-4">
       <div className="space-y-1"><Label>Project Name *</Label><Input value={f.name} onChange={e => setF({...f, name: e.target.value})} required /></div>

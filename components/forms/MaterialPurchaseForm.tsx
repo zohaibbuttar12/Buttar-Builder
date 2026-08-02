@@ -1,13 +1,29 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MaterialPurchase, Project, Vendor } from "@/lib/types"
 
+const buildMaterialPurchaseForm = (initialValues?: Partial<MaterialPurchase>) => ({
+  projectId: initialValues?.projectId || "",
+  vendorId: initialValues?.vendorId || "",
+  vendorName: initialValues?.vendorName || "",
+  materialType: initialValues?.materialType || "",
+  quantity: initialValues?.quantity || 0,
+  unit: initialValues?.unit || "kg",
+  rate: initialValues?.rate || 0,
+  date: initialValues?.date || new Date().toISOString().split("T")[0],
+})
+
 export function MaterialPurchaseForm({ onSubmit, initialValues, projects, vendors }: { onSubmit: (d: any) => void; initialValues?: Partial<MaterialPurchase>; projects: Project[]; vendors: Vendor[] }) {
-  const [f, setF] = useState({ projectId: initialValues?.projectId||"", vendorId: initialValues?.vendorId||"", vendorName: initialValues?.vendorName||"", materialType: initialValues?.materialType||"", quantity: initialValues?.quantity||0, unit: initialValues?.unit||"kg", rate: initialValues?.rate||0, date: initialValues?.date||new Date().toISOString().split("T")[0] })
+  const [f, setF] = useState(() => buildMaterialPurchaseForm(initialValues))
+
+  useEffect(() => {
+    setF(buildMaterialPurchaseForm(initialValues))
+  }, [initialValues])
+
   const pickVendor = (id: string) => { const v = vendors.find(x => x.id === id); setF({...f, vendorId: id, vendorName: v?.shopName||""}) }
   const total = f.quantity * f.rate
   return (

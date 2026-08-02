@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,17 +7,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Property, Project } from "@/lib/types"
 
+const buildPropertyForm = (initialValues?: Partial<Property>) => ({
+  projectId: initialValues?.projectId || "",
+  plotNumber: initialValues?.plotNumber || "",
+  propertyType: initialValues?.propertyType || "plot",
+  landArea: initialValues?.landArea || 0,
+  landUnit: initialValues?.landUnit || "marla",
+  landPurchasePrice: initialValues?.landPurchasePrice || 0,
+  transferFees: initialValues?.transferFees || 0,
+  purchaseDate: initialValues?.purchaseDate || new Date().toISOString().split("T")[0],
+  constructionType: initialValues?.constructionType || "none",
+  constructionArea: initialValues?.constructionArea || 0,
+  constructionCostPerSqFt: initialValues?.constructionCostPerSqFt || 0,
+  constructionStage: initialValues?.constructionStage || "not-started",
+  status: initialValues?.status || "available",
+  notes: initialValues?.notes || "",
+})
+
 export function PropertyForm({ onSubmit, initialValues, projects }: { onSubmit: (d: any) => void; initialValues?: Partial<Property>; projects: Project[] }) {
-  const [f, setF] = useState({
-    projectId: initialValues?.projectId||"", plotNumber: initialValues?.plotNumber||"",
-    propertyType: initialValues?.propertyType||"plot", landArea: initialValues?.landArea||0,
-    landUnit: initialValues?.landUnit||"marla", landPurchasePrice: initialValues?.landPurchasePrice||0,
-    transferFees: initialValues?.transferFees||0, purchaseDate: initialValues?.purchaseDate||new Date().toISOString().split("T")[0],
-    constructionType: initialValues?.constructionType||"none", constructionArea: initialValues?.constructionArea||0,
-    constructionCostPerSqFt: initialValues?.constructionCostPerSqFt||0,
-    constructionStage: initialValues?.constructionStage||"not-started",
-    status: initialValues?.status||"available", notes: initialValues?.notes||""
-  })
+  const [f, setF] = useState(() => buildPropertyForm(initialValues))
+
+  useEffect(() => {
+    setF(buildPropertyForm(initialValues))
+  }, [initialValues])
+
   const constTotal = (f.constructionArea || 0) * (f.constructionCostPerSqFt || 0)
   const totalCost = (f.landPurchasePrice||0) + (f.transferFees||0) + constTotal
   return (

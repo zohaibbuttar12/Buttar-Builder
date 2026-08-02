@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,13 +7,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Sale, Project, Property } from "@/lib/types"
 
+const buildSaleForm = (initialValues?: Partial<Sale>) => ({
+  projectId: initialValues?.projectId || "",
+  propertyId: initialValues?.propertyId || "",
+  salePrice: initialValues?.salePrice || 0,
+  saleDate: initialValues?.saleDate || new Date().toISOString().split("T")[0],
+  buyerName: initialValues?.buyerName || "",
+  buyerPhone: initialValues?.buyerPhone || "",
+  paymentMode: initialValues?.paymentMode || "cash",
+  notes: initialValues?.notes || "",
+})
+
 export function SaleForm({ onSubmit, initialValues, projects, properties }: { onSubmit: (d: any) => void; initialValues?: Partial<Sale>; projects: Project[]; properties: Property[] }) {
-  const [f, setF] = useState({
-    projectId: initialValues?.projectId||"", propertyId: initialValues?.propertyId||"",
-    salePrice: initialValues?.salePrice||0, saleDate: initialValues?.saleDate||new Date().toISOString().split("T")[0],
-    buyerName: initialValues?.buyerName||"", buyerPhone: initialValues?.buyerPhone||"",
-    paymentMode: initialValues?.paymentMode||"cash", notes: initialValues?.notes||""
-  })
+  const [f, setF] = useState(() => buildSaleForm(initialValues))
+
+  useEffect(() => {
+    setF(buildSaleForm(initialValues))
+  }, [initialValues])
+
   const availableProps = properties.filter(p => p.projectId===f.projectId && (p.status==="available"||p.status==="ready"||p.id===initialValues?.propertyId))
   const selectedProp = properties.find(p => p.id===f.propertyId)
   const profit = selectedProp ? f.salePrice - (selectedProp.totalCost||0) : 0

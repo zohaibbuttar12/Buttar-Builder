@@ -1,6 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+async function hasProjectContractAmountColumn(sb: any) {
+  try {
+    const { error } = await sb.from("projects").select("contract_amount").limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 function map(r: any) {
   return {
     id: r.id, name: r.name, description: r.description,
@@ -12,15 +21,16 @@ function map(r: any) {
     contractAmount: parseFloat(r.contract_amount || 0),
   };
 }
-function toDB(b: any) {
-  return {
+function toDB(b: any, includeContractAmount = true) {
+  const out: any = {
     name: b.name, description: b.description, client_name: b.clientName,
     client_contact: b.clientContact, location: b.location,
     start_date: b.startDate, end_date: b.endDate, budget: b.estimatedBudget,
     plot_size: b.plotSize, status: b.status,
     land_sale_id: b.landSaleId || null, purchased_land_id: b.purchasedLandId || null,
-    contract_amount: b.contractAmount || 0,
   };
+  if (includeContractAmount && b.contractAmount !== undefined) out.contract_amount = b.contractAmount;
+  return out;
 }
 export async function GET() {
   const sb = await createClient();
@@ -31,7 +41,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const sb = await createClient();
   const body = await req.json();
-  const { data, error } = await sb.from("projects").insert([toDB(body)]).select();
+  const includeContractAmount = await hasProjectContractAmountColumn(sb);
+  const { data, error } = await sb.from("projects").insert([toDB(body, includeContractAmount)]).select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const project = data[0];
 

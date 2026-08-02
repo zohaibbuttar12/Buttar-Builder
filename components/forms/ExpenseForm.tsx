@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,8 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Expense, Project } from "@/lib/types"
 
+const buildExpenseForm = (initialValues?: Partial<Expense>) => ({
+  projectId: initialValues?.projectId || "",
+  category: initialValues?.category || "transport",
+  description: initialValues?.description || "",
+  vendorPerson: initialValues?.vendorPerson || "",
+  amount: initialValues?.amount || 0,
+  date: initialValues?.date || new Date().toISOString().split("T")[0],
+})
+
 export function ExpenseForm({ onSubmit, initialValues, projects }: { onSubmit: (d: any) => void; initialValues?: Partial<Expense>; projects: Project[] }) {
-  const [f, setF] = useState({ projectId: initialValues?.projectId||"", category: initialValues?.category||"transport", description: initialValues?.description||"", vendorPerson: initialValues?.vendorPerson||"", amount: initialValues?.amount||0, date: initialValues?.date||new Date().toISOString().split("T")[0] })
+  const [f, setF] = useState(() => buildExpenseForm(initialValues))
+
+  useEffect(() => {
+    setF(buildExpenseForm(initialValues))
+  }, [initialValues])
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit({...f, amount: Number(f.amount)}) }} className="space-y-4">
       <div className="space-y-1"><Label>Project *</Label>

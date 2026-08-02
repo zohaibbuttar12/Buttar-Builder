@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,8 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Labour, LabourPayment, Project } from "@/lib/types"
 
+const buildLabourPaymentForm = (initialValues?: Partial<LabourPayment>) => ({
+  labourId: initialValues?.labourId || "",
+  labourName: initialValues?.labourName || "",
+  projectId: initialValues?.projectId || "",
+  workDescription: initialValues?.workDescription || "",
+  amount: initialValues?.amount || 0,
+  date: initialValues?.date || new Date().toISOString().split("T")[0],
+})
+
 export function LabourPaymentForm({ onSubmit, initialValues, projects, labours }: { onSubmit: (d: any) => void; initialValues?: Partial<LabourPayment>; projects: Project[]; labours: Labour[] }) {
-  const [f, setF] = useState({ labourId: initialValues?.labourId||"", labourName: initialValues?.labourName||"", projectId: initialValues?.projectId||"", workDescription: initialValues?.workDescription||"", amount: initialValues?.amount||0, date: initialValues?.date||new Date().toISOString().split("T")[0] })
+  const [f, setF] = useState(() => buildLabourPaymentForm(initialValues))
+
+  useEffect(() => {
+    setF(buildLabourPaymentForm(initialValues))
+  }, [initialValues])
+
   const pickLabour = (id: string) => { const l = labours.find(x => x.id === id); setF({...f, labourId: id, labourName: l?.name||""}) }
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit({...f, amount: Number(f.amount)}) }} className="space-y-4">
