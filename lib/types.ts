@@ -26,6 +26,15 @@ export interface Labour {
   id: string; name: string; category: string; phone: string; address: string; createdAt?: string;
 }
 
+export interface WorkerCategory {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface LabourPayment {
   id: string; labourId: string; labourName: string; projectId: string;
   workDescription: string; amount: number; date: string; createdAt?: string;

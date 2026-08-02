@@ -1,9 +1,9 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Project, Labour, LabourPayment, Vendor, MaterialPurchase, Expense, Stats, Partner, ProjectPartner, Property, Sale, PurchasedLand, ProjectLandAssignment, LandSale } from "@/lib/types";
+import { Project, Labour, WorkerCategory, LabourPayment, Vendor, MaterialPurchase, Expense, Stats, Partner, ProjectPartner, Property, Sale, PurchasedLand, ProjectLandAssignment, LandSale } from "@/lib/types";
 
 interface DataContextType {
-  projects: Project[]; labours: Labour[]; labourPayments: LabourPayment[];
+  projects: Project[]; labours: Labour[]; workerCategories: WorkerCategory[]; labourPayments: LabourPayment[];
   vendors: Vendor[]; materialPurchases: MaterialPurchase[]; expenses: Expense[];
   partners: Partner[]; projectPartners: ProjectPartner[];
   properties: Property[]; sales: Sale[];
@@ -16,6 +16,10 @@ interface DataContextType {
   addLabour: (l: Omit<Labour,"id">) => Promise<void>;
   updateLabour: (id: string, l: Partial<Labour>) => Promise<void>;
   deleteLabour: (id: string) => Promise<void>;
+  addWorkerCategory: (c: Omit<WorkerCategory,"id">) => Promise<WorkerCategory>;
+  updateWorkerCategory: (id: string, c: Partial<WorkerCategory>) => Promise<WorkerCategory>;
+  deleteWorkerCategory: (id: string) => Promise<void>;
+  toggleWorkerCategoryStatus: (id: string, isActive: boolean) => Promise<WorkerCategory>;
   addLabourPayment: (p: Omit<LabourPayment,"id">) => Promise<void>;
   updateLabourPayment: (id: string, p: Partial<LabourPayment>) => Promise<void>;
   deleteLabourPayment: (id: string) => Promise<void>;
@@ -63,6 +67,7 @@ async function api(url: string, options?: RequestInit) {
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [labours, setLabours] = useState<Labour[]>([]);
+  const [workerCategories, setWorkerCategories] = useState<WorkerCategory[]>([]);
   const [labourPayments, setLabourPayments] = useState<LabourPayment[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [materialPurchases, setMaterialPurchases] = useState<MaterialPurchase[]>([]);
@@ -80,15 +85,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const refreshData = useCallback(async () => {
     try {
       setLoading(true); setError(null);
-      const [p, l, lp, v, mp, e, par, pp, prop, s, pl, pla, ls] = await Promise.all([
-        api("/api/projects"), api("/api/labours"), api("/api/labour-payments"),
+      const [p, l, wc, lp, v, mp, e, par, pp, prop, s, pl, pla, ls] = await Promise.all([
+        api("/api/projects"), api("/api/labours"), api("/api/worker-categories"), api("/api/labour-payments"),
         api("/api/vendors"), api("/api/material-purchases"), api("/api/expenses"),
         api("/api/partners"), api("/api/project-partners"),
         api("/api/properties"), api("/api/sales"),
         api("/api/purchased-lands"), api("/api/project-land-assignments"),
         api("/api/land-sales"),
       ]);
-      setProjects(p); setLabours(l); setLabourPayments(lp); setVendors(v);
+      setProjects(p); setLabours(l); setWorkerCategories(wc); setLabourPayments(lp); setVendors(v);
       setMaterialPurchases(mp); setExpenses(e); setPartners(par);
       setProjectPartners(pp); setProperties(prop); setSales(s);
       setPurchasedLands(pl); setProjectLandAssignments(pla); setLandSales(ls);
@@ -118,6 +123,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const pc = crud<Project>(setProjects, "/api/projects");
   const lc = crud<Labour>(setLabours, "/api/labours");
+  const wcc = crud<WorkerCategory>(setWorkerCategories, "/api/worker-categories");
   const lpc = crud<LabourPayment>(setLabourPayments, "/api/labour-payments");
   const vc = crud<Vendor>(setVendors, "/api/vendors");
   const mpc = crud<MaterialPurchase>(setMaterialPurchases, "/api/material-purchases");
@@ -182,6 +188,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return project as Project;
   };
 
+  const addWorkerCategory = async (c: Omit<WorkerCategory, "id">) => {
+    const created = await api("/api/worker-categories", { method: "POST", body: JSON.stringify(c) });
+    setWorkerCategories(p => [created, ...p]);
+    return created as WorkerCategory;
+  };
+  const updateWorkerCategory = async (id: string, c: Partial<WorkerCategory>) => {
+    const updated = await api(`/api/worker-categories/${id}`, { method: "PUT", body: JSON.stringify(c) });
+    setWorkerCategories(p => p.map(x => x.id === id ? updated : x));
+    return updated as WorkerCategory;
+  };
+  const deleteWorkerCategory = async (id: string) => {
+    await api(`/api/worker-categories/${id}`, { method: "DELETE" });
+    setWorkerCategories(p => p.filter(x => x.id !== id));
+  };
+  const toggleWorkerCategoryStatus = async (id: string, isActive: boolean) => {
+    return updateWorkerCategory(id, { isActive });
+  };
+
   // Sales need special handling (also updates property status)
   const addSale = async (s: Omit<Sale,"id">) => {
     const c = await api("/api/sales", { method:"POST", body: JSON.stringify(s) });
@@ -201,11 +225,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      projects, labours, labourPayments, vendors, materialPurchases, expenses,
+      projects, labours, workerCategories, labourPayments, vendors, materialPurchases, expenses,
       partners, projectPartners, properties, sales,
       stats, loading, error,
       addProject: pc.add, updateProject: pc.update, deleteProject: pc.remove,
       addLabour: lc.add, updateLabour: lc.update, deleteLabour: lc.remove,
+      addWorkerCategory, updateWorkerCategory, deleteWorkerCategory, toggleWorkerCategoryStatus,
       addLabourPayment: lpc.add, updateLabourPayment: lpc.update, deleteLabourPayment: lpc.remove,
       addVendor: vc.add, updateVendor: vc.update, deleteVendor: vc.remove,
       addMaterialPurchase: mpc.add, updateMaterialPurchase: mpc.update, deleteMaterialPurchase: mpc.remove,
